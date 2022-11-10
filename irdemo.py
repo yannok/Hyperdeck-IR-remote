@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import evdev
 import asyncio
 import subprocess
@@ -10,11 +10,14 @@ import libtmux
 last_event_time = 0
 last_event_value = 0
 #hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13", "192.168.10.21", "192.168.10.22", "192.168.10.23", "192.168.10.31", "192.168.10.32", "192.168.10.33", "192.168.10.41", "192.168.10.42",  "192.168.10.43"]
-hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13", "192.168.10.31", "192.168.10.32", "192.168.10.33"]
+hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13",
+                     "192.168.10.31", "192.168.10.32", "192.168.10.33"]
 
 tmuxServer = libtmux.Server()
-tmuxSession = tmuxServer.new_session(session_name="hypersession", kill_session=True, attach=False)
-tmuxWindow = tmuxSession.new_window(attach=False, window_name="hyperwindow")
+tmuxSession = tmuxServer.new_session(
+    session_name="hypersession", kill_session=True, attach=False)
+tmuxWindow = tmuxSession.attached_window
+#tmuxWindow = tmuxSession.new_window(attach=False, window_name="hyperwindow")
 
 
 # returns path of gpio ir receiver device
@@ -28,37 +31,43 @@ def get_ir_device():
     print("No device found!")
     sys.exit()
 
+
 def record_all():
     print("REC ALL")
     tmuxSession.attached_pane.send_keys('RECORD')
     tmuxSession.attached_pane.send_keys('C-m')
+
 
 def play_all():
     print("PLAY ALL")
     tmuxSession.attached_pane.send_keys('PLAY')
     tmuxSession.attached_pane.send_keys('C-m')
 
+
 def stop_all():
     print("STOP ALL")
     tmuxSession.attached_pane.send_keys('STOP')
     tmuxSession.attached_pane.send_keys('C-m')
 
+
 async def helper(dev):
     async for event in dev.async_read_loop():
-        global last_event_time,last_event_value
+        global last_event_time, last_event_value
         if (event.value != 0):  # IGNORE EVENT 0 TRIGGERED ON RELEASE
-          if (event.sec - last_event_time > 1) or (event.value != last_event_value): # REMOTES USUALLY SEND THE SAME SIGNAL MULTIPLE TIMES
-            last_event_value=event.value
-            last_event_time=event.sec
-            print(repr(event.value))
-            if(event.value == 69):
-              record_all()
-            elif (event.value == 70):
-              stop_all()
-            elif (event.value == 71):
-              play_all()
-            elif (event.value == 74):
-                print("TODO : KILL EVERYTHING and EXIT nicely")
+            # REMOTES USUALLY SEND THE SAME SIGNAL MULTIPLE TIMES
+            if (event.sec - last_event_time > 1) or (event.value != last_event_value):
+                last_event_value = event.value
+                last_event_time = event.sec
+                print(repr(event.value))
+                if (event.value == 69):
+                    record_all()
+                elif (event.value == 70):
+                    stop_all()
+                elif (event.value == 71):
+                    play_all()
+                elif (event.value == 74):
+                    print("TODO : KILL EVERYTHING and EXIT nicely")
+
 
 def init_tmux_session():
     nbPanes = len(hyperdeck_ip_list)
@@ -68,17 +77,19 @@ def init_tmux_session():
         tmuxWindow.select_layout('tiled')
         panesList[i].send_keys('telnet {} 9993'.format(hyperdeck_ip_list[i]))
     tmuxSession.set_option('synchronize-pane', True)
-    tmuxSession.attached_pane.send_keys('C-d') # TO KILL FAILED TELNET SESSIONS
-    tmuxSession.attached_pane.send_keys('C-m') # TO REMOVE PREVIOUS CTRL+D ANNOYING COMMAND IN TELNET SESSIONS (will display 'syntax error' but ok anyway)
+    # TO CLOSE FAILED TELNET PANES:
+    #tmuxSession.attached_pane.send_keys('C-d')  
+    # TO REMOVE PREVIOUS CTRL+D ANNOYING COMMAND IN ACTIVE TELNET PANES (will display 'syntax error' but ok anyway):
+    tmuxSession.attached_pane.send_keys('C-m')
 
- 
+
 def main():
     init_tmux_session()
     device = get_ir_device()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(helper(device))    
+    loop.run_until_complete(helper(device))
     print("Fini!")
+
 
 if __name__ == "__main__":
     main()
-
