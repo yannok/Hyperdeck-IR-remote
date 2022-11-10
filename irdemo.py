@@ -9,16 +9,13 @@ import libtmux
 
 last_event_time = 0
 last_event_value = 0
-#hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13", "192.168.10.21", "192.168.10.22", "192.168.10.23", "192.168.10.31", "192.168.10.32", "192.168.10.33", "192.168.10.41", "192.168.10.42",  "192.168.10.43"]
-hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13",
-                     "192.168.10.31", "192.168.10.32", "192.168.10.33"]
+hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13", "192.168.10.21", "192.168.10.22", "192.168.10.23", "192.168.10.31", "192.168.10.32", "192.168.10.33", "192.168.10.41", "192.168.10.42",  "192.168.10.43"]
+#hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13", "192.168.10.31", "192.168.10.32", "192.168.10.33"]
 
 tmuxServer = libtmux.Server()
 tmuxSession = tmuxServer.new_session(
     session_name="hypersession", kill_session=True, attach=False)
 tmuxWindow = tmuxSession.attached_window
-#tmuxWindow = tmuxSession.new_window(attach=False, window_name="hyperwindow")
-
 
 # returns path of gpio ir receiver device
 def get_ir_device():
@@ -78,7 +75,7 @@ def init_tmux_session():
         panesList[i].send_keys('telnet {} 9993'.format(hyperdeck_ip_list[i]))
     tmuxSession.set_option('synchronize-pane', True)
     # TO CLOSE FAILED TELNET PANES:
-    #tmuxSession.attached_pane.send_keys('C-d')  
+    tmuxSession.attached_pane.send_keys('C-d')  
     # TO REMOVE PREVIOUS CTRL+D ANNOYING COMMAND IN ACTIVE TELNET PANES (will display 'syntax error' but ok anyway):
     tmuxSession.attached_pane.send_keys('C-m')
 
