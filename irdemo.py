@@ -12,10 +12,6 @@ last_event_value = 0
 #hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13", "192.168.10.21", "192.168.10.22", "192.168.10.23", "192.168.10.31", "192.168.10.32", "192.168.10.33", "192.168.10.41", "192.168.10.42",  "192.168.10.43"]
 hyperdeck_ip_list = ["192.168.10.11", "192.168.10.12", "192.168.10.13", "192.168.10.31", "192.168.10.32", "192.168.10.33"]
 
-#tmuxServer = None
-#tmuxSession = None
-#tmuxWindow = None
-
 tmuxServer = libtmux.Server()
 tmuxSession = tmuxServer.new_session(session_name="hypersession", kill_session=True, attach=False)
 tmuxWindow = tmuxSession.new_window(attach=False, window_name="hyperwindow")
@@ -32,52 +28,26 @@ def get_ir_device():
     print("No device found!")
     sys.exit()
 
-### UNUSED ###############################################################
-def play_deck(hyperdeck_ip):
-    command = "echo 'PLAY' | telnet {} 9993".format(hyperdeck_ip)
-    subprocess.Popen(command, shell=True)
-
-def rec_deck(hyperdeck_ip):
-    command = "echo 'RECORD' | telnet {} 9993".format(hyperdeck_ip)
-    subprocess.Popen(command, shell=True)
-
-def stop_deck(hyperdeck_ip):
-    command = "echo 'STOP' | telnet {} 9993".format(hyperdeck_ip)
-    subprocess.Popen(command, shell=True)
-
-def print_ips(hyperdeck_ip):
-    command = "echo {}".format(hyperdeck_ip)
-    subprocess.Popen(command, shell=True)
-#########################################################################
-
 def record_all():
     print("REC ALL")
-    #pool = Pool()
-    #pool.map(rec_deck,hyperdeck_ip_list)
     tmuxSession.attached_pane.send_keys('RECORD')
     tmuxSession.attached_pane.send_keys('C-m')
 
 def play_all():
     print("PLAY ALL")
-    #pool = Pool()
-    #pool.map(play_deck, hyperdeck_ip_list)
     tmuxSession.attached_pane.send_keys('PLAY')
     tmuxSession.attached_pane.send_keys('C-m')
 
 def stop_all():
     print("STOP ALL")
-    #pool = Pool()
-    #pool.map(stop_deck, hyperdeck_ip_list)
     tmuxSession.attached_pane.send_keys('STOP')
     tmuxSession.attached_pane.send_keys('C-m')
 
 async def helper(dev):
     async for event in dev.async_read_loop():
         global last_event_time,last_event_value
-        #print("event.sec = " + str(event.sec) + " / last_event_time = " + str(last_event_time))
-        # check last time event to avoid capturing multi
-        if (event.value != 0):  # AN EVENT 0 is TRIGGERED on RELEASE
-          if (event.sec - last_event_time > 1) or (event.value != last_event_value):
+        if (event.value != 0):  # IGNORE EVENT 0 TRIGGERED ON RELEASE
+          if (event.sec - last_event_time > 1) or (event.value != last_event_value): # REMOTES USUALLY SEND THE SAME SIGNAL MULTIPLE TIMES
             last_event_value=event.value
             last_event_time=event.sec
             print(repr(event.value))
@@ -91,7 +61,6 @@ async def helper(dev):
                 print("TODO : KILL EVERYTHING and EXIT nicely")
 
 def init_tmux_session():
-    ## ANOTHER WAY TO CREATE TMUX SESSION WITHOUT libtmux --> subprocess.Popen(['tmux', 'new', '-d', '-s', 'myName'])
     nbPanes = len(hyperdeck_ip_list)
     panesList = []
     for i in range(0, nbPanes):
